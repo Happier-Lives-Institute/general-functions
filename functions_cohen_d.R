@@ -1,5 +1,6 @@
 # Functions related to Cohen's d calculations
 
+## MSD
 # Get pooled SD
 get_SDp <- function(n1, sd1, n2, sd2){
   return(
@@ -25,10 +26,28 @@ get_d_se <- function(d, n1, n2){
   )
 }
 
+## convert OR into d
 # See Julio et al. 2003
 # https://www.um.es/metaanalysis/pdf/7078.pdf
-get_d_se_dhh <- function(yes1, no1, yes2, no2){
+
+# HH
+get_d_hh <- function(OR) {
+  return(log(OR)*(sqrt(3)/pi))
+}
+
+get_d_hh_se <- function(yes1, no1, yes2, no2){
   return(
     sqrt((3/sqrt(pi))*((1/yes1)+(1/no1)+(1/yes2)+(1/no2)))
+  )
+}
+
+# Cox
+get_d_Cox <- function(OR) {
+  return(log(OR)/1.65)
+}
+
+get_d_Cox_se <- function(yes1, no1, yes2, no2){
+  return(
+    sqrt(0.367*((1/yes1)+(1/no1)+(1/yes2)+(1/no2)))
   )
 }

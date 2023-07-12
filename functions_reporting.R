@@ -100,12 +100,3 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   
   return(df)
 }
-
-# Report lines of meta-analyses
-ma_report <- function(m) {
-  sapply(
-    1:nrow(m$b),
-    function(x){
-      sprintf("(%.0f) %.2f (95%% CI: %.2f, %.2f)", x, m$b[x], m$ci.lb[x], m$ci.ub[x])
-    })
-}

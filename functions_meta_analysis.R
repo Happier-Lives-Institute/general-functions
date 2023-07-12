@@ -27,3 +27,67 @@ ma_extract_weights <- function(m) {
 
   return(study_weights)
 }
+
+## Function to do model comparison easily
+# Model comparison is based on:
+#  - "Data Analysis: A model Comparison Approach to regression, ANOVA,
+# and Beyond" by Judd et al. (2017)
+#  - https://github.com/StatQuest/logistic_regression_demo/blob/master/logistic_regression_demo.R
+
+# Custom function to compare to logistic models and get PRD and p
+ma_model_comparison <- function (m1, m2){
+  
+  # Get which model is the reduced (C) or full (A)
+  if(m1$parms <= m2$parms) {
+    mC <- m1
+    mA <- m2
+  } else {
+    mC <- m2
+    mA <- m1
+  }
+  
+  # Calculate the logLik difference
+  df <- mA$parms - mC$parms
+  logLik_C <- -2*logLik(mC)[1]
+  logLik_A <- -2*logLik(mA)[1]
+  logLik_diff <- abs(logLik_C - logLik_A) # abs to deal with rare case of positive logLik
+  PRD <- abs(logLik_diff / logLik_C)
+  
+  # Check whether the logLik difference is statistically significant
+  chi_crit <- qchisq(1-.05, df = df)
+  p_value <- pchisq(logLik_diff, df=df, lower.tail=F)
+  
+  # Present the models and their values
+  models_table <- data.frame(
+    n_parameters_C = mC$parms,
+    n_parameters_A = mA$parms,
+    logLik_C,
+    logLik_A,
+    AIC_C = AIC(mC),
+    AIC_A = AIC(mA)
+  ) %>% pivot_longer(
+    cols = everything(),
+    names_to = c(".value", "model"),
+    names_pattern = "(.*)_(.*)"
+  ); models_table <- as.data.frame(models_table)
+  
+  # Present the logLik comparison
+  output_table <- data.frame(
+    PRD=PRD,
+    logLik_diff=logLik_diff,
+    df=df,
+    chi_crit=chi_crit,
+    p=p_value
+  )
+  
+  # Return a list with information calculated here
+  # and information about the model specifications
+  return(
+    list(
+      modelC = mC[["call"]],
+      modelA = mA[["call"]],
+      models_table,
+      output_table
+    )
+  )
+}

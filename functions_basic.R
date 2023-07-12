@@ -28,3 +28,8 @@ se <- function(x, na.rm = F) {
   if(na.rm) {x <- na.omit(x)}
   return(sd(x)/sqrt(length(x)))
 }
+
+## Function to get SE from mean and CI
+get_se_from_ci <- function(lower, upper){
+  return((upper - lower)/3.92)
+}

@@ -24,4 +24,6 @@ ma_extract_weights <- function(m) {
     authors = m$slab,
     weight  = weights
   ) %>% mutate(weight_standardised = weight / sum(weight))
+
+  return(study_weights)
 }

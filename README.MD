@@ -13,3 +13,15 @@ devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/
 # For meta-analysis functions
 devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/general-functions/main/functions_meta_analysis.R")
 ```
+
+To run it without the SHA message use:
+```{r}
+# For basic functions
+suppressMessages(devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/general-functions/main/functions_basic.R"))
+# For reporting functions
+suppressMessages(devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/general-functions/main/functions_reporting.R"))
+# For Cohen's d functions
+suppressMessages(devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/general-functions/main/functions_cohen_d.R"))
+# For meta-analysis functions
+suppressMessages(devtools::source_url("https://raw.githubusercontent.com/Happier-Lives-Institute/general-functions/main/functions_meta_analysis.R"))
+´´´

@@ -27,7 +27,7 @@ get_d_se <- function(d, n1, n2){
 }
 
 ## convert OR into d
-# See Julio et al. 2003
+# See Sánchez-Meca et al. 2003
 # https://www.um.es/metaanalysis/pdf/7078.pdf
 
 # HH

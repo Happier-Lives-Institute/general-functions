@@ -51,3 +51,8 @@ get_d_Cox_se <- function(yes1, no1, yes2, no2){
     sqrt(0.367*((1/yes1)+(1/no1)+(1/yes2)+(1/no2)))
   )
 }
+
+## Get Hedge's g
+get_g <- function(d, n1, n2) {
+ return(d * (1-(3/(4*(n1+n2)-9))))
+}

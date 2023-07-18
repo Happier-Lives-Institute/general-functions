@@ -2,7 +2,7 @@
 
 ## MSD
 # Get pooled SD
-get_SDp <- function(n1, sd1, n2, sd2){
+get_SD_p <- function(n1, sd1, n2, sd2){
   return(
     abs(
       sqrt(

@@ -33,8 +33,6 @@ ma_extract_weights <- function(m) {
 #  - "Data Analysis: A model Comparison Approach to regression, ANOVA,
 # and Beyond" by Judd et al. (2017)
 #  - https://github.com/StatQuest/logistic_regression_demo/blob/master/logistic_regression_demo.R
-
-# Custom function to compare to logistic models and get PRD and p
 ma_model_comparison <- function (m1, m2){
   
   # Get which model is the reduced (C) or full (A)

@@ -22,7 +22,7 @@ get_d <- function(m1, m2, pooledSD){
 # Get standard error of Cohen's D (see Harrer et al., 2021 for example)
 get_d_se <- function(d, n1, n2){
   return(
-    sqrt(((n1 + n2)/ (n1*n2)) + ((d^2) / (2*(n1 + n2))))
+    sqrt(((n1 + n2) / (n1*n2)) + ((d^2) / (2*(n1 + n2))))
   )
 }
 
@@ -55,4 +55,9 @@ get_d_Cox_se <- function(yes1, no1, yes2, no2){
 ## Get Hedge's g
 get_g <- function(d, n1, n2) {
  return(d * (1-(3/(4*(n1+n2)-9))))
+}
+
+## Get se corrected for SMDs so that it is independent from effect size
+get_corrected_se_smd <- function(n1, n2) {
+  return(sqrt(((n1 + n2)/(n1*n2))))
 }

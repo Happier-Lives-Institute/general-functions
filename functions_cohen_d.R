@@ -13,7 +13,7 @@ get_SD_p <- function(n1, sd1, n2, sd2){
 }
 
 # Get Cohen's D
-get_d <- function(m1, m2, pooledSD){
+get_d <- function(m1, m2, SD_pooled){
   return(
     (m1 - m2) / pooledSD
   )

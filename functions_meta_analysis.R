@@ -77,6 +77,14 @@ ma_model_comparison <- function (m1, m2){
     chi_crit=chi_crit,
     p=p_value
   )
+
+  # Add synthesis about the model comparison
+  synthesis <- data.frame(
+    bigger_model_better_logLik = p_value < 0.05,
+    bigger_model_better_AIC = AIC(mA) < AIC(mC)
+  ) %>% mutate(
+    bigger_model_better_both = bigger_model_better_logLik & bigger_model_better_AIC
+  )
   
   # Return a list with information calculated here
   # and information about the model specifications
@@ -85,7 +93,8 @@ ma_model_comparison <- function (m1, m2){
       modelC = mC[["call"]],
       modelA = mA[["call"]],
       models_table,
-      output_table
+      output_table,
+      synthesis
     )
   )
 }

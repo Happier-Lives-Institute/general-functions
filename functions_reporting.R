@@ -2,30 +2,13 @@
 
 # Round number to string, fills in missing digits (decimals) with 0s
 round_c <- function(x, digits = 2) {
-  roundedElement <- round(x, digits)
-  roundedElement.char <- as.character(roundedElement)
-  
-  # If digits are more than 0
-  if(digits > 0) {
-    # If no decimals
-    if(roundedElement %% 1 == 0) {
-      roundedElement.char <- paste0(roundedElement.char, ".")
-      for (i in 1:digits) {
-        roundedElement.char <- paste0(roundedElement.char, "0")
-      }
-    } else {
-      ndecimals <- nchar(strsplit(roundedElement.char, ".", fixed = T)[[1]][2])
-      diffToDigits <- digits - ndecimals
-      
-      if(diffToDigits > 0) {
-        for (i in 1:diffToDigits) {
-          roundedElement.char <- paste0(roundedElement.char, "0")
-        }
-      }
-    }
-  }
-  
-  return(roundedElement.char)
+  formatC(x, format="f", digits=digits)
+}
+
+# Round number to string with % in front
+round_per <- function(x) {
+  percent_string <- sprintf("%.2f%%", x * 100)
+  return(percent_string)
 }
 
 # Function to report a distribution #

@@ -83,3 +83,13 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   
   return(df)
 }
+
+# A function to format p values like it is common to report them
+format_p_value <- function(p_value) {
+  if (p_value < 0.001) {
+    return("p < .001")
+  } else {
+    formatted_p <- formatC(p_value, format = "f", digits = 3)
+    return(paste0("p = ", sub("^0\\.", ".", formatted_p)))
+  }
+}

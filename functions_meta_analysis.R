@@ -98,3 +98,46 @@ ma_model_comparison <- function (m1, m2){
     )
   )
 }
+
+# Function to get the SE modified by the Knapp-Hartung t confidence intervals
+# So that the monte carlo simulations approach the modified confidence interval
+# appropriately, which is usually larger than using the SE naively.
+ma_get_adjusted_se <- function(m) {
+  # Is it a mlm format model (i.e., rma.mv)
+  is_mlm <- !is.null(m$random)
+  
+  # Get the total number of parameter
+  params <- m$p
+  
+  # Get the total between-effect-sizes variance
+  if(is_mlm) (tau2 <- sum(m$sigma2)) else (tau2 <- m$tau2)
+  
+  # Prepare the data
+  adjusted_se <- NULL
+  # Loop through and populate the data
+  for(i in 1:params){
+    
+    # Get the prediction interval
+    t_crit = qt(0.05/2, df = m$ddf[[i]], lower.tail = FALSE)
+    pi_lb = m$b[i] - t_crit * sqrt(tau2 + m$se[i]^2)
+    pi_ub = m$b[i] + t_crit * sqrt(tau2 + m$se[i]^2)
+    
+    new_adjusted_se <- data.frame(
+      param = i,
+      se    = m$se[i],
+      ci_lb = m$ci.lb[i],
+      ci_up = m$ci.ub[i],
+      # This is how we get a more representation se for the MC
+      adjusted_se = (m$ci.ub[i]-m$ci.lb[i])/3.92,
+      # Getting some prediction interval corrected se
+      pi_lb,
+      pi_ub,
+      adjusted_se_pi = (pi_ub-pi_lb)/3.92
+    )
+    
+    # Adding the lines
+    adjusted_se <- rbind(adjusted_se, new_adjusted_se)
+  }
+  
+  return(adjusted_se)
+}

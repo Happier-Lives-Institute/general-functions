@@ -121,7 +121,7 @@ ma_get_adjusted_se <- function(m) {
     if(is_mlm) (ddf <- m$ddf[[i]]) else (ddf <- m$ddf[1])
     
     # Get the prediction interval
-    t_crit = qt(0.05/2, df = m$ddf[[i]], lower.tail = FALSE)
+    t_crit = qt(0.05/2, df = ddf, lower.tail = FALSE)
     pi_lb = m$b[i] - t_crit * sqrt(tau2 + m$se[i]^2)
     pi_ub = m$b[i] + t_crit * sqrt(tau2 + m$se[i]^2)
     

@@ -191,7 +191,7 @@ ma_report_analysis <- function(m) {
   }
   
   # Get the inverse matrix of the variance weihts by the moderation
-  inverse_XWX <- .invcalc(X = X, W = W.FE, k = k)
+  inverse_XWX <- .invcalc(X = X, W = W, k = k)
   
   # Get a projection matrix of the previously calculated matrices
   # (this often used to calculate residuals or other quantities that measure 

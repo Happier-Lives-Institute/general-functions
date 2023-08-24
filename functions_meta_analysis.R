@@ -116,6 +116,9 @@ ma_get_adjusted_se <- function(m) {
   adjusted_se <- NULL
   # Loop through and populate the data
   for(i in 1:params){
+
+    # Adjust ddf based on whether it is mlm or not
+    if(is_mlm) (ddf <- m$ddf[[i]]) else (ddf <- m$ddf[1])
     
     # Get the prediction interval
     t_crit = qt(0.05/2, df = m$ddf[[i]], lower.tail = FALSE)

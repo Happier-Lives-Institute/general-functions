@@ -45,3 +45,15 @@ positive_or_zero <- function(x) {
     return(x)
   }
 }
+
+# Calculate confidence interval based on se
+calculate_ci_se <- function(mean, se, level = 0.95) {
+  # Calculate the Z-score based on the confidence level
+  z_score <- qnorm(1 - (1 - level) / 2)
+  
+  # Calculate the confidence interval
+  lower_bound <- mean - z_score * se
+  upper_bound <- mean + z_score * se
+  
+  return(c(lower_bound, upper_bound))
+}

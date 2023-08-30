@@ -372,24 +372,26 @@ ma_report_analysis <- function(m) {
 my_funnel_rma.mv <- function(
     m, # the model we are graphing for
     add_contour = T, # Whether there is a contour plot
-    point_fill = "" # Variable by which we group the effect sizes in color 
+    se_variable = "function_se", # the variable to use if we want to set a different se, 
+    # such as corrected SEs
+    point_fill = "" # Variable by which we group the effect sizes in color
 ) {
   
   # Extract data and estimates from rma.mv model
   dat <- m$data
   dat$yi <- as.numeric(m$yi)
-  dat$se <- sqrt(m$vi)
-  
+  dat$function_se <- sqrt(m$vi)
+  dat$function_se <- dat[, se_variable][[1]]
   
   # Prepare general elements of the graph
   pooled_effect <- m$b[1]
-  max_se <- max(dat$se)
+  max_se <- max(dat$function_se)
   
   # Calculate expected (or pseudo) confidence interval for the maximum SE
   expected_ci <- calculate_ci_se(pooled_effect, max_se)
   
   # Generate the funnel plot
-  my_funnel_plot <- dat %>% ggplot(aes(x = yi, y = se)) +
+  my_funnel_plot <- dat %>% ggplot(aes(x = yi, y = function_se)) +
     # Reverse the standard errors
     scale_y_reverse() +
     

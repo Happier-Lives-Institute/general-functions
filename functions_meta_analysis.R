@@ -367,3 +367,104 @@ ma_report_analysis <- function(m) {
   
   return(results)
 }
+
+# Function to produce a ggplot funnel plot
+my_funnel_rma.mv <- function(
+    m, # the model we are graphing for
+    add_contour = T, # Whether there is a contour plot
+    point_fill = "" # Variable by which we group the effect sizes in color 
+) {
+  
+  # Extract data and estimates from rma.mv model
+  dat <- m$data
+  dat$yi <- as.numeric(m$yi)
+  dat$se <- sqrt(m$vi)
+  
+  
+  # Prepare general elements of the graph
+  pooled_effect <- m$b[1]
+  max_se <- max(dat$se)
+  
+  # Calculate expected (or pseudo) confidence interval for the maximum SE
+  expected_ci <- calculate_ci_se(pooled_effect, max_se)
+  
+  # Generate the funnel plot
+  my_funnel_plot <- dat %>% ggplot(aes(x = yi, y = se)) +
+    # Reverse the standard errors
+    scale_y_reverse() +
+    
+    # Prepare the theme
+    theme_cowplot() +
+    labs(x = "Effect size",
+         y = "Standard Error")
+  
+  # Conditionally add the contour plot
+  if (add_contour) {
+    contour_data <- data.frame(
+      x = c(
+        c(0, -1.64 * max_se, +1.64 * max_se),
+        c(0, -1.64 * max_se, -1.96 * max_se), 
+        c(0, 1.64 * max_se, 1.96 * max_se), 
+        c(0, -2.58 * max_se, -1.96 * max_se),
+        c(0, 2.58 * max_se, 1.96 * max_se),
+        c(0, -2.58 * max_se, -Inf),
+        c(0, 2.58 * max_se, Inf)
+      ),
+      y = rep(c(0, Inf, Inf), 7),
+      fill = c(
+        rep("n.s.", 3),
+        rep("p < .10", 3),
+        rep("p < .10", 3),
+        rep("p < .05", 3),
+        rep("p < .05", 3),
+        rep("p < .001", 3),
+        rep("p < .001", 3)
+      )
+    )
+    
+    my_funnel_plot <- my_funnel_plot +
+      geom_polygon(data = contour_data, aes(x = x, y = y, fill = fill)) +
+      scale_fill_manual(
+        values = c("n.s." = "gray75", "p < .10" = "gray85", 
+                   "p < .05" = "gray95", "p < .001" = "white"),
+        breaks = c("p < .001", "p < .05", "p < .10", "n.s."),
+        name = "Significance Level",
+        drop = F
+      )
+  }
+  
+  # Continue with other elements of the funnel plot
+  my_funnel_plot <- my_funnel_plot +
+    # Create the line for the predicted effect size
+    geom_segment(aes(
+      x = pooled_effect, xend = pooled_effect, y = Inf, yend = 0
+    ), linetype = 3) +
+    
+    # Create the funnel
+    geom_segment(aes(
+      x = expected_ci[1], xend = pooled_effect, y = Inf, yend = 0
+    ), linetype=3) +
+    geom_segment(aes(
+      x = pooled_effect, xend = expected_ci[2], y = 0, yend = Inf
+    ), linetype=3)
+  
+  # Dependent on whether a point fill was given, add the effect sizes
+  if (point_fill != "") {
+    my_funnel_plot <- my_funnel_plot +
+      geom_point(alpha = 0.5, 
+                 aes(fill = get(point_fill), color = get(point_fill))) +
+      # need to modify the legend accordingly
+      guides(
+        fill = guide_legend(override.aes = list(alpha = 1, shape = NA)),
+        color = guide_legend(title = point_fill)
+      ) +
+      theme(legend.position = "bottom", legend.box = "vertical")
+  } else {
+    my_funnel_plot <- my_funnel_plot +
+      geom_point(alpha = 0.5, shape = 21, color = "black", fill = "blue")
+  }
+  
+  # return the funnel
+  return(my_funnel_plot)
+  
+}

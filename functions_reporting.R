@@ -11,6 +11,11 @@ round_per <- function(x) {
   return(percent_string)
 }
 
+# Function to easily write a confidence interval string
+present_with_CI <- function(estimate, lower, upper, per = "95%") {
+  sprintf("% .2f (%s CI: % .2f, % .2f)", estimate, per, lower, upper)
+}
+
 # Function to report a distribution #
 MMSDCI.vec <- function(x, ci = .95){
   
@@ -64,21 +69,17 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   # Get the CI for each variable
   df$ci <- NA
   for (variable in df$variable) {
-    
-    newCI <- paste0(
-      "(95% CI: ", 
-      round_c(quantile(as.data.frame(sim)[,variable], 
-                       probs = c(CI.low, CI.upp))[[1]], 2), ", ",
-      round_c(quantile(as.data.frame(sim)[,variable], 
-                       probs = c(CI.low, CI.upp))[[2]], 2), ")"
-    )
-    
-    df$ci[which(df$variable == variable)] <- newCI
+    lower <- quantile(as.data.frame(sim)[,variable], 
+                       probs = c(CI.low, CI.upp))[[1]]
+    upper <- quantile(as.data.frame(sim)[,variable], 
+                       probs = c(CI.low, CI.upp))[[2]]
+    new_ci <-   sprintf("(%I CI: % .2f, % .2f)", (ci * 100), lower, upper)
+    df$ci[which(df$variable == variable)] <- new_ci
   }
   
   # Copy into one string, for ease fo copy pasting
   df <- df %>% rowwise() %>% 
-    mutate(combined = paste0(round_c(pe, 2), " ", ci)) %>% 
+    mutate(combined = sprintf("% .2f %s", pe, ci)) %>% 
     ungroup()
   
   return(df)

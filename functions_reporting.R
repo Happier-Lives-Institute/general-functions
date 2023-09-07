@@ -13,7 +13,13 @@ round_per <- function(x) {
 
 # Function to easily write a confidence interval string
 present_with_CI <- function(estimate, lower, upper, per = "95%") {
-  sprintf("% .2f (%s CI: % .2f, % .2f)", estimate, per, lower, upper)
+  if(is.na(estimate)) {
+    return(NA)
+  } else if (is.na(lower) | is.na(upper)) {
+    return(sprintf("% .2f", estimate))
+  } else {
+    return(sprintf("% .2f (%s CI: % .2f, % .2f)", estimate, per, lower, upper))
+  }
 }
 
 # Function to report a distribution #

@@ -103,3 +103,14 @@ format_p_value <- function(p_value, include_p = T) {
     return(paste0(p_equals, sub("^0\\.", ".", formatted_p)))
   }
 }
+
+# A function for lineseparations in rmd kableExtra tables
+generate_linesep <- function(table, freq, insert = "\\addlinespace") {
+  # Initialize an empty vector
+  linesep_vec <- rep("", nrow(table))
+  
+  # Insert "\\addlinespace" (or other specified) at the specified frequency
+  linesep_vec[seq(freq, nrow(table), by = freq)] <- insert
+  
+  return(linesep_vec)
+}

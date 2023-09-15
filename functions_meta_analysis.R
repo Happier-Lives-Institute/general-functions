@@ -160,7 +160,7 @@ ma_report_analysis <- function(m) {
   is_mlm <- !is.null(m$random)
   
   # Number of effect sizes
-  k <- m$k.all
+  k <- m$k.eff
   
   # The weights based on sampling variance
   wi <- 1/m$vi
@@ -190,7 +190,7 @@ ma_report_analysis <- function(m) {
     filter(!if_any(all_of(all.vars(model_formula)), is.na))
   }
 
-  # Then we can create the model matrix
+  # Then we can create the model matrix
   X <- model.matrix(model_formula, data = m_data)
   
   # Copying the rma function to inverse a product of matrices

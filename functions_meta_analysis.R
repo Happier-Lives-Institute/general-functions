@@ -180,8 +180,18 @@ ma_report_analysis <- function(m) {
   
   # Create a design matrix of the model (intercept plus any moderators)
   # If there are no moderators you need to tell it to be an intercept only model
-  if(is.null(m$formula.mods)) (model_formula <- as.formula("~1")) else (model_formula <- m$formula.mods)
-  X <- model.matrix(model_formula, data = m$data)
+  # First, we need to prepare the data, filtering NAs for any of the moderators
+  if(is.null(m$formula.mods)) {
+    model_formula <- as.formula("~1")
+    m_data <- m$data
+  } else {
+    model_formula <- m$formula.mods
+    m_data <- m$data %>%
+    filter(!if_any(all_of(all.vars(model_formula)), is.na))
+  }
+
+  # Then we can create the model matrix
+  X <- model.matrix(model_formula, data = m_data)
   
   # Copying the rma function to inverse a product of matrices
   .invcalc <- function (X, W, k) {
@@ -318,10 +328,10 @@ ma_report_analysis <- function(m) {
   # If the model is not mlm, thereby an RE rma, we need to set the random level
   # manually.
   if(is_mlm) {
-    model_null_data <- m$data
+    model_null_data <- m_data
     model_null_random <- as.formula(m$random[[1]])
   } else {
-    model_null_data <- m$data
+    model_null_data <- m_data
     model_null_data$es_id <- 1:nrow(model_null_data)
     model_null_random <- as.formula("~1 | es_id")
   }

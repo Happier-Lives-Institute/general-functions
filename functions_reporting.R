@@ -74,7 +74,8 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   
   # Get the CI for each variable
   df$ci_num <- NA
-  df$ci <- NA
+  df$ci_lower <- NA
+  df$ci_upper <- NA
   for (variable in df$variable) {
     lower  <- quantile(as.data.frame(sim)[,variable], 
                        probs = c(CI.low, CI.upp))[[1]]

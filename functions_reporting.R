@@ -73,13 +73,15 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   )
   
   # Get the CI for each variable
+  df$ci_num <- NA
   df$ci <- NA
   for (variable in df$variable) {
-    lower <- quantile(as.data.frame(sim)[,variable], 
+    lower  <- quantile(as.data.frame(sim)[,variable], 
                        probs = c(CI.low, CI.upp))[[1]]
-    upper <- quantile(as.data.frame(sim)[,variable], 
+    upper  <- quantile(as.data.frame(sim)[,variable], 
                        probs = c(CI.low, CI.upp))[[2]]
-    new_ci <-   sprintf("(%i CI: % .2f, % .2f)", (ci * 100), lower, upper)
+    new_ci <- sprintf("(%i%s CI: % .2f, % .2f)", (ci * 100), "%", lower, upper)
+    df$ci_num <- c(lower, upper)
     df$ci[which(df$variable == variable)] <- new_ci
   }
   

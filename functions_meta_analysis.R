@@ -391,7 +391,7 @@ my_funnel_rma.mv <- function(
   dat <- m$data
   dat$yi <- as.numeric(m$yi)
   dat$function_se <- sqrt(m$vi)
-  dat$function_se <- dat[, se_variable][[1]]
+  dat$function_se <- dat[, se_variable]
   
   # Prepare general elements of the graph
   pooled_effect <- m$b[1]

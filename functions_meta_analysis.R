@@ -389,6 +389,7 @@ my_funnel_rma.mv <- function(
   
   # Extract data and estimates from rma.mv model
   dat <- m$data
+  dat <- as.data.frame(dat)
   dat$yi <- as.numeric(m$yi)
   dat$function_se <- sqrt(m$vi)
   dat$function_se <- dat[, se_variable]

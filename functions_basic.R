@@ -57,3 +57,12 @@ calculate_ci_se <- function(mean, se, level = 0.95) {
   
   return(c(lower_bound, upper_bound))
 }
+
+
+# Formula to get the t easily
+get_independent_t <- function(n1, n2, m1, m2, sd1, sd2){
+  SD_p <- get_SD_p(n1, sd1, n2, sd2)
+  SE_diff <- sqrt(((SD_p^2)/n1)+((SD_p^2)/n2))
+  t = (m1 - m2) / SE_diff
+  return(t)
+}

@@ -66,3 +66,12 @@ get_independent_t <- function(n1, n2, m1, m2, sd1, sd2){
   t = (m1 - m2) / SE_diff
   return(t)
 }
+
+# Function to make graphs nice by rounding to the nearest 0.5
+round_up_to_nearest_half <- function(x) {
+  if (x >= 0) {
+    return(ceiling(x * 2) / 2)
+  } else {
+    return(floor(x * 2) / 2)
+  }
+}

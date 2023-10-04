@@ -73,7 +73,6 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
   )
   
   # Get the CI for each variable
-  df$ci_num <- NA
   df$ci_lower <- NA
   df$ci_upper <- NA
   for (variable in df$variable) {
@@ -84,12 +83,12 @@ combine_PE_SIM <- function(pe, sim, ci = .95){
     new_ci <- sprintf("(%i%s CI: % .2f, % .2f)", (ci * 100), "%", lower, upper)
     df$ci_lower[which(df$variable == variable)] <- lower
     df$ci_upper[which(df$variable == variable)] <- upper
-    df$ci[which(df$variable == variable)] <- new_ci
+    df$new_ci[which(df$variable == variable)] <- new_ci
   }
   
   # Copy into one string, for ease fo copy pasting
   df <- df %>% rowwise() %>% 
-    mutate(combined = sprintf("% .2f %s", pe, ci)) %>% 
+    mutate(combined = sprintf("% .2f %s", pe, new_ci)) %>% 
     ungroup()
   
   return(df)

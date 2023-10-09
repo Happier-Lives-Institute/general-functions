@@ -323,6 +323,9 @@ ma_report_analysis <- function(m) {
   #---
   
   ## Calculate R2
+
+  # Only if this is not an FE model
+  if(m$method != "FE") {
   
   # Prepare the null model (model c, the version without moderators)
   # If the model is not mlm, thereby an RE rma, we need to set the random level
@@ -355,6 +358,12 @@ ma_report_analysis <- function(m) {
   
   # Calculate overall how much the tau2 reduces from adding moderators
   tau2_reduction_from_moderators <- sum(model_null$sigma2) - sum(model_levels$tau2, na.rm = T)
+
+  } else {
+    # Make NA for FE model
+    R2 <- NA
+    tau2_reduction_from_moderators <- NA
+  }
   
   # present all the information about the moderators
   model <- list(

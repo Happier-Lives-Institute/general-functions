@@ -485,6 +485,12 @@ my_funnel_rma.mv <- function(
     my_funnel_plot <- my_funnel_plot +
       geom_point(alpha = 0.5, shape = 21, color = "black", fill = "blue")
   }
+
+  # Make a white background that is easier to visualise
+  my_funnel_plot <- my_funnel_plot + theme(
+    plot.background = element_rect(fill = "white"),
+    panel.background = element_rect(fill = "white")
+  )
   
   # return the funnel
   return(my_funnel_plot)

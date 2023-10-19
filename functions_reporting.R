@@ -6,8 +6,9 @@ round_c <- function(x, digits = 2) {
 }
 
 # Round number to string with % in front
-round_per <- function(x) {
-  percent_string <- sprintf("%.2f%%", x * 100)
+round_per <- function(x, digits = 2) {
+  format_string <- paste0("%.", digits, "f%%")
+  percent_string <- sprintf(format_string, x * 100)
   return(percent_string)
 }
 

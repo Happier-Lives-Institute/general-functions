@@ -246,7 +246,7 @@ ma_report_analysis <- function(m) {
         # First level is within-effect-size variance
         model_levels$level_formula[level_i] <- "within-effect-size variance"
         model_levels$level_n[level_i] <- k
-        model_levels$variance_symbol[level_i] <- "ε"
+        model_levels$variance_symbol[level_i] <- "epsilon"
         model_levels$variance[level_i] <- nu
         model_levels$nu[level_i] <- nu
         model_levels$tau2[level_i] <- NA
@@ -256,7 +256,7 @@ ma_report_analysis <- function(m) {
         model_levels$level_formula[level_i] <- m$s.names[level_i]
         model_levels$level_n[level_i] <- m$s.nlevels[level_i]
         model_levels$variance_symbol[level_i] <- paste0(
-          "ζ", model_levels$level_number[level_i]-1
+          "zeta", model_levels$level_number[level_i]-1
         )
         model_levels$variance[level_i] <- m$sigma2[level_i]
         model_levels$nu[level_i] <- NA
@@ -271,7 +271,7 @@ ma_report_analysis <- function(m) {
       level_number = c(2, 1),
       level_formula = c("between-effect-size-variance", "within-effect-size variance"),
       level_n = k,
-      variance_symbol = c("ζ","ε"),
+      variance_symbol = c("zeta","epsilon"),
       variance = c(m$tau2, nu),
       nu = c(NA, nu),
       tau2 = c(m$tau2, NA)

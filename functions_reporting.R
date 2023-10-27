@@ -243,3 +243,13 @@ get_total_effect <- function(
     )
   )
 }
+
+# Define function to escape LaTeX special characters
+escape_latex <- function(x) {
+  x <- gsub("%", "\\\\%", x)
+  x <- gsub("_", "\\\\_", x)
+  x <- gsub("&", "\\\\&", x)
+  x <- gsub("#", "\\\\#", x)
+  # Add more special characters here if necessary
+  return(x)
+}

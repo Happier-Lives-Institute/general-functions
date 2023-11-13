@@ -259,6 +259,7 @@ escape_latex <- function(x) {
   x <- gsub("_", "\\\\_", x)
   x <- gsub("&", "\\\\&", x)
   x <- gsub("#", "\\\\#", x)
+  x <- gsub("\\$", "\\\\$", x)
   # Add more special characters here if necessary
   return(x)
 }

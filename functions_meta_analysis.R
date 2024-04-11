@@ -145,6 +145,18 @@ ma_get_adjusted_se <- function(m) {
   return(adjusted_se)
 }
 
+# Some RMA functions we need in order to run the other functions
+## Copying the rma function to inverse a product of matrices
+.invcalc <- function (X, W, k) {
+  sWX <- sqrt(W) %*% X
+  res.qrs <- qr.solve(sWX, diag(k))
+  return(tcrossprod(res.qrs))
+}
+
+## Copying the rma function to return the trace of a matrix 
+# (sum of diagonal elements)
+.tr <- function (X) {return(sum(diag(X)))}
+
 ## Report a fuller analysis of the RE or MLM model
 # Reports information about the moderation if relevant
 # Reports information about heterogeneity
@@ -169,14 +181,8 @@ ma_report_analysis <- function(m) {
   # within-effect-sizes variance (nu)
   #---
   # The first step for most heterogeneity calculations is to get the typical
-  # within-effect-sizes variance.
-  
-  # This calculation is based on exploring the calculation in metafor::rma
-  # It looks complicated, because it takes into account possible moderators.
-  
-  # Create a diagonal matrix of the weights (which will weight the contributions
-  # of each effect size based on this precision)
-  W <- diag(wi, nrow = k, ncol = k)
+  # within-effect-sizes variance. 
+  # This uses a separate function so to be repeated.
   
   # Create a design matrix of the model (intercept plus any moderators)
   # If there are no moderators you need to tell it to be an intercept only model
@@ -187,36 +193,14 @@ ma_report_analysis <- function(m) {
   } else {
     model_formula <- m$formula.mods
     m_data <- m$data %>%
-    filter(!if_any(all_of(all.vars(model_formula)), is.na))
+      filter(!if_any(all_of(all.vars(model_formula)), is.na))
   }
-
-  # Then we can create the model matrix
-  X <- model.matrix(model_formula, data = m_data)
-  
-  # Copying the rma function to inverse a product of matrices
-  .invcalc <- function (X, W, k) {
-    sWX <- sqrt(W) %*% X
-    res.qrs <- qr.solve(sWX, diag(k))
-    return(tcrossprod(res.qrs))
-  }
-  
-  # Get the inverse matrix of the variance weihts by the moderation
-  inverse_XWX <- .invcalc(X = X, W = W, k = k)
-  
-  # Get a projection matrix of the previously calculated matrices
-  # (this often used to calculate residuals or other quantities that measure 
-  # the fit of a model)
-  P <- W - W %*% X %*% inverse_XWX %*% crossprod(X, W)
   
   # Get the number of predictors in the design matrix of this model
-  predictors_n <- NCOL(X)
-  
-  # Copying the rma function to return the trace of a matrix 
-  # (sum of diagonal elements)
-  .tr <- function (X) {return(sum(diag(X)))}
+  predictors_n <- get_nu_rma.mv(m)$predictors_n
   
   # Calculate the within-effect-sizes variance (nu)
-  nu <- (k - predictors_n)/.tr(P)
+  nu <- get_nu_rma.mv(m)$nu
   
   #---
   # levels and tau
@@ -279,6 +263,11 @@ ma_report_analysis <- function(m) {
   }
   
   #---
+  # Tau
+  #---
+  model_levels$tau <- sqrt(model_levels$tau2)
+  
+  #---
   # I2
   #---
   # We need the sum of all the variances
@@ -323,46 +312,53 @@ ma_report_analysis <- function(m) {
   #---
   
   ## Calculate R2
-
+  
   # Only if this is not an FE model
   if(m$method != "FE") {
-  
-  # Prepare the null model (model c, the version without moderators)
-  # If the model is not mlm, thereby an RE rma, we need to set the random level
-  # manually.
-  if(is_mlm) {
-    model_null_data <- m_data
-    model_null_random <- as.formula(m$random[[1]])
-  } else {
-    model_null_data <- m_data
-    model_null_data$es_id <- 1:nrow(model_null_data)
-    model_null_random <- as.formula("~1 | es_id")
-  }
-  model_null <- rma.mv(
-    yi = m$yi, V = m$vi, random = model_null_random, data = model_null_data,
-    method = m$method, test = m$test
-  )
-  
-  # Calculate R2 for the different models
-  model_levels$R2 <- NA
-  for (level_i in seq(max_levels,1, -1)) {
-    model_levels$R2[level_i] <- positive_or_zero(
-      (1 - (model_levels$tau2[level_i]/model_null$sigma2[level_i]))
+    
+    # Prepare the null model (model c, the version without moderators)
+    # If the model is not mlm, thereby an RE rma, we need to set the random level
+    # manually.
+    if(is_mlm) {
+      model_null_data <- m_data
+      model_null_random <- as.formula(m$random[[1]])
+    } else {
+      model_null_data <- m_data
+      model_null_data$es_id <- 1:nrow(model_null_data)
+      model_null_random <- as.formula("~1 | es_id")
+    }
+    model_null <- rma.mv(
+      yi = m$yi, V = m$vi, random = model_null_random, data = model_null_data,
+      method = m$method, test = m$test
     )
-  }
-  
-  # Calculate the general R2
-  R2 <- positive_or_zero(
-    (1 - (sum(model_levels$tau2, na.rm = T)/sum(model_null$sigma2)))
-  )
-  
-  # Calculate overall how much the tau2 reduces from adding moderators
-  tau2_reduction_from_moderators <- sum(model_null$sigma2) - sum(model_levels$tau2, na.rm = T)
-
+    
+    # Calculate R2 for the different models
+    model_levels$R2 <- NA
+    for (level_i in seq(max_levels,1, -1)) {
+      model_levels$R2[level_i] <- positive_or_zero(
+        (1 - (model_levels$tau2[level_i]/model_null$sigma2[level_i]))
+      )
+    }
+    
+    # Calculate the general R2
+    R2 <- positive_or_zero(
+      (1 - (sum(model_levels$tau2, na.rm = T)/sum(model_null$sigma2)))
+    )
+    
+    # Calculate overall how much the tau2 reduces from adding moderators
+    tau2_reduction_from_moderators <- sum(model_null$sigma2) - sum(model_levels$tau2, na.rm = T)
+    
+    # Calculate the I2 from the model without moderators
+    model_null_nu <- get_nu_rma.mv(model_null)$nu
+    model_null_sum_variance <- sum(model_null$sigma2, na.rm = T) + model_null_nu
+    model_null_I2 <- sum(model_null$sigma2) / model_null_sum_variance
+    I2_reduction_from_moderators <- model_null_I2 - sum(model_levels$I2, na.rm = T)
+    
   } else {
     # Make NA for FE model
     R2 <- NA
     tau2_reduction_from_moderators <- NA
+    I2_reduction_from_moderators <- NA
   }
   
   # present all the information about the moderators
@@ -371,7 +367,10 @@ ma_report_analysis <- function(m) {
     parameters_n = predictors_n,
     R2 = R2,
     tau2 = sum(model_levels$tau2, na.rm = T),
-    tau2_reduction_from_moderators = tau2_reduction_from_moderators
+    tau = sqrt(sum(model_levels$tau2, na.rm = T)),
+    I2 = sum(model_levels$I2, na.rm = T),
+    tau2_reduction_from_moderators = tau2_reduction_from_moderators,
+    I2_reduction_from_moderators = I2_reduction_from_moderators
   )
   
   #---

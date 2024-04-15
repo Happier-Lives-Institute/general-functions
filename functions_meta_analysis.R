@@ -157,6 +157,74 @@ ma_get_adjusted_se <- function(m) {
 # (sum of diagonal elements)
 .tr <- function (X) {return(sum(diag(X)))}
 
+# A big complication of the model is that I want to get the nu. This is 
+# difficult because there is a lot of stuff happening. If I can simplify it 
+# into one function that words, I can reuse it more easily.
+
+get_nu_rma.mv <- function(m) {
+  
+  #---
+  # general variables
+  #---
+  
+  # Is it a mlm format model (i.e., rma.mv)
+  is_mlm <- !is.null(m$random)
+  
+  # Number of effect sizes
+  k <- m$k.eff
+  
+  # The weights based on sampling variance
+  wi <- 1/m$vi
+  
+  #---
+  # within-effect-sizes variance (nu)
+  #---
+  # The first step for most heterogeneity calculations is to get the typical
+  # within-effect-sizes variance.
+  
+  # This calculation is based on exploring the calculation in metafor::rma
+  # It looks complicated, because it takes into account possible moderators.
+  
+  # Create a diagonal matrix of the weights (which will weight the contributions
+  # of each effect size based on this precision)
+  W <- diag(wi, nrow = k, ncol = k)
+  
+  # Create a design matrix of the model (intercept plus any moderators)
+  # If there are no moderators you need to tell it to be an intercept only model
+  # First, we need to prepare the data, filtering NAs for any of the moderators
+  if(is.null(m$formula.mods)) {
+    model_formula <- as.formula("~1")
+    m_data <- m$data
+  } else {
+    model_formula <- m$formula.mods
+    m_data <- m$data %>%
+      filter(!if_any(all_of(all.vars(model_formula)), is.na))
+  }
+  
+  # Then we can create the model matrix
+  X <- model.matrix(model_formula, data = m_data)
+  
+  # Get the inverse matrix of the variance weihts by the moderation
+  inverse_XWX <- .invcalc(X = X, W = W, k = k)
+  
+  # Get a projection matrix of the previously calculated matrices
+  # (this often used to calculate residuals or other quantities that measure 
+  # the fit of a model)
+  P <- W - W %*% X %*% inverse_XWX %*% crossprod(X, W)
+  
+  # Get the number of predictors in the design matrix of this model
+  predictors_n <- NCOL(X)
+  
+  # Calculate the within-effect-sizes variance (nu)
+  nu <- (k - predictors_n)/.tr(P)
+  
+  return(
+    list(
+      nu=nu, predictors_n=predictors_n
+    )
+  )
+}
+
 ## Report a fuller analysis of the RE or MLM model
 # Reports information about the moderation if relevant
 # Reports information about heterogeneity

@@ -8,7 +8,7 @@ theme_hli_wbg <- function() {
 }
 
 # Function to save a plot as both PNG and SVG
-hli_double_save <- function(filename_no_end, plot, width, height, dpi, units = "in") {
+hli_double_save <- function(filename_no_end, plot, width, height, dpi, unit = "in") {
 
   # --- PNG ---
   ggsave(
@@ -17,7 +17,7 @@ hli_double_save <- function(filename_no_end, plot, width, height, dpi, units = "
     width    = width,
     height   = height,
     dpi      = dpi,
-    units    = units
+    unit    = unit
   )
 
   # --- SVG ---

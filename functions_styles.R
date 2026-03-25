@@ -8,7 +8,7 @@ theme_hli_wbg <- function() {
 }
 
 # Function to save a plot as both PNG and SVG
-hli_double_save <- function(filename_no_end, plot, width, height, dpi, unit = "in") {
+hli_double_save <- function(filename_no_end, plot, width, height, dpi, set_svg_same_ratio = F, units = "in") {
 
   # --- PNG ---
   ggsave(
@@ -17,16 +17,26 @@ hli_double_save <- function(filename_no_end, plot, width, height, dpi, unit = "i
     width    = width,
     height   = height,
     dpi      = dpi,
-    unit    = unit
+    units    = units
   )
 
   # --- SVG ---
   svg_path <- paste0(filename_no_end, ".svg")
 
-  ggsave(
-    filename = svg_path,
-    plot     = plot,
-  )
+  if(set_svg_same_ratio) {
+    ggsave(
+      filename = svg_path,
+      plot     = plot,
+      width    = width,
+      height   = height,
+      units     = units
+    )
+  } else {
+    ggsave(
+      filename = svg_path,
+      plot     = plot
+    )
+  }
 
   svg_string <- readChar(svg_path, file.info(svg_path)$size)
 

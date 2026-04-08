@@ -8,7 +8,9 @@ theme_hli_wbg <- function() {
 }
 
 # Function to save a plot as both PNG and SVG
-hli_double_save <- function(filename_no_end, plot, width, height, dpi, set_svg_same_ratio = F, units = "in") {
+hli_double_save <- function(filename_no_end, plot, width, height, dpi, 
+                            set_svg_same_ratio = FALSE, units = "in",
+                            svg_title = NULL, svg_desc = NULL) {
 
   # --- PNG ---
   ggsave(
@@ -50,6 +52,31 @@ hli_double_save <- function(filename_no_end, plot, width, height, dpi, set_svg_s
   # Make responsive: width=100%, drop fixed height (viewBox preserves aspect ratio)
   svg_string <- gsub("(<svg[^>]*) width='[^']*'",  "\\1 width='100%'", svg_string, perl = TRUE)
   svg_string <- gsub("(<svg[^>]*) height='[^']*'", "\\1",              svg_string, perl = TRUE)
+
+  # --- Accessibility ---
+  if (!is.null(svg_title)) {
+    title_id <- paste0(basename(filename_no_end), "-title")
+    desc_id  <- paste0(basename(filename_no_end), "-desc")
+
+    # Build aria-labelledby value
+    labelledby <- title_id
+    
+    # Build nodes to inject
+    a11y_nodes <- sprintf('<title id="%s">%s</title>', title_id, svg_title)
+
+    if (!is.null(svg_desc)) {
+      labelledby  <- paste(title_id, desc_id)
+      a11y_nodes  <- paste0(a11y_nodes, sprintf('<desc id="%s">%s</desc>', desc_id, svg_desc))
+    }
+
+    # Add role and aria-labelledby to opening <svg> tag
+    svg_string <- gsub("(<svg)([^>]*>)", 
+                       sprintf('\\1 role="img" aria-labelledby="%s"\\2', labelledby), 
+                       svg_string, perl = TRUE)
+
+    # Inject title (and desc) immediately after the opening <svg ...> tag
+    svg_string <- gsub("(<svg[^>]*>)", paste0("\\1", a11y_nodes), svg_string, perl = TRUE)
+  }
 
   writeChar(svg_string, svg_path, eos = NULL)
 }

@@ -89,3 +89,12 @@ double_pool_sd <- function(n1, n2, m1, m2, sd1, sd2) {
   )
   
 }
+
+get_d_cor_samples <- function(m1, m2, sd1, sd2, r) {
+    d <- (m1 - m2)/sqrt((sd1^2 + sd2^2 - 2*r*sd1*sd2)/2) * sqrt(2*(1-r))
+    return(d)
+}
+
+get_d_from_g <- function(g, n1, n2) {
+  return(g / (1 - (3 / (4*(n1+n2)-9))))
+}

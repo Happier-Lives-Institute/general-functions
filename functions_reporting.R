@@ -13,17 +13,19 @@ round_per <- function(x, digits = 2) {
 }
 
 # Function to easily write a confidence interval string
-present_with_CI <- function(estimate, lower, upper, per = "95%") {
-  if (is.na(estimate)) {
-    if (is.na(lower) | is.na(upper)) {
-      return(NA)
-    } else {
-      return(sprintf("(%s CI: % .2f, % .2f)", per, lower, upper))
-    }
-  } else if (is.na(lower) | is.na(upper)) {
-    return(sprintf("% .2f", estimate))
+present_with_CI <- function(estimate, lower, upper, per = "95%", show_per = T) {
+  ci_str <- if (show_per) {
+    sprintf("(%s CI: % .2f, % .2f)", per, lower, upper)
   } else {
-    return(sprintf("% .2f (%s CI: % .2f, % .2f)", estimate, per, lower, upper))
+    sprintf("(% .2f, % .2f)", lower, upper)
+  }
+
+  if (is.na(estimate)) {
+    if (is.na(lower) | is.na(upper)) NA else ci_str
+  } else if (is.na(lower) | is.na(upper)) {
+    sprintf("% .2f", estimate)
+  } else {
+    sprintf("% .2f %s", estimate, ci_str)
   }
 }
 

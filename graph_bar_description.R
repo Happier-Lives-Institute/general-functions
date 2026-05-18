@@ -3,10 +3,6 @@
 # Can show the means
 # Can show the counts
 
-# Set colours for the graph if there are no grouping conditions
-color_1 <- "#1C5FB8"
-color_2 <- "#ff6900"
-
 bar_description <- function(
         data, variable,
         grouping = "",
@@ -15,6 +11,9 @@ bar_description <- function(
         individual_labels = T,
         max_x = 10
 ){
+    color_1 <- "#1C5FB8"
+    color_2 <- "#ff6900"
+
     # Need the data as data.frame for certain manipulations
     data <- as.data.frame(data)
 
@@ -115,12 +114,12 @@ bar_description <- function(
         if(flip){
             p <- p + coord_flip() + geom_text(
                 stat='count',
-                aes(label=..count..),
+                aes(label=after_stat(count)),
                 hjust= +1.05,
                 color="white"
             )
         } else {
-            p <- p + geom_text(stat='count', aes(label=..count..), vjust=-0.25, color="black")
+            p <- p + geom_text(stat='count', aes(label=after_stat(count)), vjust=-0.25, color="black")
         }
     }
 

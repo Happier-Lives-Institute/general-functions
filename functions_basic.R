@@ -35,7 +35,7 @@ get_se_from_ci <- function(lower, upper){
 }
 
 ## Function for non-negative values
-# Returns the valule if positive, returns 0 if negative
+# Returns the value if positive, returns 0 if negative
 positive_or_zero <- function(x) {
   if (is.na(x)) {
     return(NA)

@@ -30,38 +30,25 @@ present_with_CI <- function(estimate, lower, upper, per = "95%", show_per = T) {
 }
 
 # Function to report a distribution #
-MMSDCI.vec <- function(x, ci = .95){
-  
-  # Get the upper and lower quantiles
-  CI.low <- (1 - ci)/2
-  CI.upp <- ci + CI.low
-  
-  # Return the summary
-  return(
-    paste0(
-      "M = ", round_c(mean(x, na.rm=T), 2),
-      ", SD = ", round_c(sd(x, na.rm=T), 2),
-      ", Median = ", round_c(median(x, na.rm=T), 2),
-      ", (95% CI: ", round_c(quantile(x, probs = c(CI.low, CI.upp))[[1]], 2), ", ",
-      round_c(quantile(x, probs = c(CI.low, CI.upp))[[2]], 2), ")"
-    )
+MMSDCI.vec <- function(x, ci = .95) {
+  alpha <- (1 - ci) / 2
+  q <- quantile(x, probs = c(alpha, 1 - alpha), na.rm = TRUE)
+
+  paste0(
+    "M = ",        round_c(mean(x,   na.rm = TRUE), 2),
+    ", SD = ",     round_c(sd(x,     na.rm = TRUE), 2),
+    ", Median = ", round_c(median(x, na.rm = TRUE), 2),
+    ", (", ci * 100, "% CI: ", round_c(q[[1]], 2), ", ", round_c(q[[2]], 2), ")"
   )
 }
 
-MMSDCI <- function(x, ci = .95){
-  
-  # If it is vector, just report one line
-  if (is.vector(x)){
-    report <- MMSDCI.vec(x, ci)
+MMSDCI <- function(x, ci = .95) {
+  if (is.data.frame(x)) {
+    x <- dplyr::select(x, where(is.numeric))
+    lapply(x, MMSDCI.vec, ci = ci)
   } else {
-    # Filter out non-numeric columns
-    x <- x %>% select_if(is.numeric)
-    
-    # Otherwise, report a line for every column
-    report <- lapply(x, MMSDCI.vec)
+    MMSDCI.vec(x, ci = ci)
   }
-  
-  return(report)
 }
 
 # Combine PE and SIM

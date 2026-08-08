@@ -1,10 +1,27 @@
 # Combine cowplot and a white background
-theme_hli_wbg <- function() {
-  theme_cowplot() +
+# The sizes are optional, only applied when given.
+theme_hli_wbg <- function(axis_title_size = NULL, axis_text_size = NULL,
+                          legend_title_size = NULL, legend_text_size = NULL) {
+  my_theme <- theme_cowplot() +
     theme(
       panel.background = element_rect(fill = "white", colour = NA),
       plot.background = element_rect(fill = "white", colour = NA)
     )
+
+  if (!is.null(axis_title_size)) {
+    my_theme <- my_theme + theme(axis.title = element_text(size = axis_title_size))
+  }
+  if (!is.null(axis_text_size)) {
+    my_theme <- my_theme + theme(axis.text = element_text(size = axis_text_size))
+  }
+  if (!is.null(legend_title_size)) {
+    my_theme <- my_theme + theme(legend.title = element_text(size = legend_title_size))
+  }
+  if (!is.null(legend_text_size)) {
+    my_theme <- my_theme + theme(legend.text = element_text(size = legend_text_size))
+  }
+
+  my_theme
 }
 
 # Function to save a plot as both PNG and SVG

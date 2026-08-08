@@ -33,7 +33,7 @@ ma_extract_weights <- function(m) {
 #  - "Data Analysis: A model Comparison Approach to regression, ANOVA,
 # and Beyond" by Judd et al. (2017)
 #  - https://github.com/StatQuest/logistic_regression_demo/blob/master/logistic_regression_demo.R
-ma_model_comparison <- function (m1, m2){
+ma_model_comparison <- function (m1, m2, label = ""){
 
   # Get which model is the reduced (C) or full (A)
   if(m1$parms <= m2$parms) {
@@ -52,8 +52,8 @@ ma_model_comparison <- function (m1, m2){
   PRD <- abs(logLik_diff / logLik_C)
 
   # Check whether the logLik difference is statistically significant
-  chi_crit <- qchisq(1-.05, df = df)
-  p_value <- pchisq(logLik_diff, df=df, lower.tail=F)
+  chi_crit <- if (df == 0) NA_real_ else qchisq(1-.05, df = df)
+  p_value <- if (df == 0) NA_real_ else pchisq(logLik_diff, df=df, lower.tail=F)
 
   # Present the models and their values
   models_table <- data.frame(
@@ -83,18 +83,31 @@ ma_model_comparison <- function (m1, m2){
     bigger_model_better_logLik = p_value < 0.05,
     bigger_model_better_AIC = AIC(mA) < AIC(mC)
   ) %>% mutate(
-    bigger_model_better_both = bigger_model_better_logLik & bigger_model_better_AIC
+    bigger_model_better_both = ifelse(
+      is.na(bigger_model_better_logLik),
+      bigger_model_better_AIC,
+      bigger_model_better_logLik & bigger_model_better_AIC
+    )
+  )
+
+  # Data.frame of info
+  info <- data.frame(
+    test        = label,
+    LRT_p       = p_value,
+    dAIC        = AIC(mA) - AIC(mC),
+    prefer_full = synthesis$bigger_model_better_both
   )
 
   # Return a list with information calculated here
   # and information about the model specifications
   return(
     list(
-      modelC = mC[["call"]],
-      modelA = mA[["call"]],
+      modelC = list(mC$formula, mC$random, mC$struct),
+      modelA = list(mA$formula, mA$random, mA$struct),
       models_table,
       output_table,
-      synthesis
+      synthesis,
+      info
     )
   )
 }
@@ -110,7 +123,7 @@ ma_get_adjusted_se <- function(m) {
   params <- m$p
 
   # Get the total between-effect-sizes variance
-  if(is_mlm) (tau2 <- sum(m$sigma2)) else (tau2 <- m$tau2)
+  if(is_mlm) (tau2 <- sum(m$sigma2, m$tau2, m$gamma2, na.rm = T)) else (tau2 <- m$tau2)
 
   # Prepare the data
   adjusted_se <- NULL
@@ -225,6 +238,58 @@ get_nu_rma.mv <- function(m) {
   )
 }
 
+## Cache for the null models used to calculate R2
+# ma_report_analysis() refits the model without moderators to get R2. That refit
+# is the same for every model built on the same data with the same random
+# structure, so we keep what we need from it and reuse it.
+
+# Where the results are kept. Emptied at the start of each analysis.
+.ma_null_cache <- new.env(parent = emptyenv())
+
+# Everything that goes into the null model. Same parts means same answer.
+.ma_null_key_parts <- function(m, data, random, struct, V) {
+  list(
+    yi      = m$yi,
+    V       = V,
+    data    = data,
+    # deparse because a formula also carries its environment
+    random  = deparse(random),
+    struct  = struct,
+    method  = m$method,
+    test    = m$test,
+    control = m$control
+  )
+}
+
+# Get the null model numbers, only fitting if we have not seen these parts before.
+ma_null_summary <- function(parts, fit_fun) {
+
+  key <- digest::digest(parts)
+
+  # Check the parts really match, in case two sets share a key
+  stored <- .ma_null_cache[[key]]
+  if (!is.null(stored) && identical(stored$parts, parts)) {
+    return(stored$value)
+  }
+
+  # Fit it and keep only the four things we use
+  model_null <- fit_fun()
+  value <- list(
+    sigma2 = model_null$sigma2,
+    tau2   = model_null$tau2,
+    gamma2 = model_null$gamma2,
+    nu     = get_nu_rma.mv(model_null)$nu
+  )
+
+  assign(key, list(parts = parts, value = value), envir = .ma_null_cache)
+
+  return(value)
+}
+
+ma_null_cache_clear <- function() {
+  rm(list = ls(.ma_null_cache), envir = .ma_null_cache)
+}
+
 ## Report a fuller analysis of the RE or MLM model
 # Reports information about the moderation if relevant
 # Reports information about heterogeneity
@@ -264,11 +329,11 @@ ma_report_analysis <- function(m) {
       filter(!if_any(all_of(all.vars(model_formula)), is.na))
   }
 
-  # Get the number of predictors in the design matrix of this model
-  predictors_n <- get_nu_rma.mv(m)$predictors_n
-
-  # Calculate the within-effect-sizes variance (nu)
-  nu <- get_nu_rma.mv(m)$nu
+  # Get the number of predictors in the design matrix of this model, and the
+  # within-effect-sizes variance (nu)
+  nu_info <- get_nu_rma.mv(m)
+  predictors_n <- nu_info$predictors_n
+  nu <- nu_info$nu
 
   #---
   # levels and tau
@@ -314,6 +379,29 @@ ma_report_analysis <- function(m) {
         model_levels$nu[level_i] <- NA
         model_levels$tau2[level_i] <- m$sigma2[level_i]
       }
+    }
+
+    if(m$withG) {
+      model_levels <- rbind(model_levels, data.frame(
+        level_number = NA,
+        level_formula = paste0(paste(m$g.names, collapse = " | "), " (", m$struct[1], ", rho = ", round_c(m$rho[1], 3), ")"),
+        level_n = m$g.nlevels[length(m$g.nlevels)],
+        variance_symbol = "zeta_G",
+        variance = sum(m$tau2),
+        nu = NA,
+        tau2 = sum(m$tau2)
+      ))
+    }
+    if(m$withH) {
+      model_levels <- rbind(model_levels, data.frame(
+        level_number = NA,
+        level_formula = paste0(paste(m$h.names, collapse = " | "), " (", m$struct[2], ", rho = ", round_c(m$phi[1], 3), ")"),
+        level_n = m$h.nlevels[length(m$h.nlevels)],
+        variance_symbol = "zeta_H",
+        variance = sum(m$gamma2),
+        nu = NA,
+        tau2 = sum(m$gamma2)
+      ))
     }
 
   } else {
@@ -390,27 +478,45 @@ ma_report_analysis <- function(m) {
     if(is_mlm) {
       model_null_data <- m_data
       model_null_random <- m$random
-      model_null_struct <- m$struct
+      model_null_struct <- if(isTRUE(m$withG)) m$struct else NULL
     } else {
       model_null_data <- m_data
       model_null_data$es_id <- 1:nrow(model_null_data)
       model_null_random <- as.formula("~1 | es_id")
-      model_null_struct <- "CS"
+      model_null_struct <- NULL
     }
-    model_null <- tryCatch(
-      rma.mv(
-        yi = m$yi, V = m$vi, random = model_null_random, struct = model_null_struct,
-        data = model_null_data, method = m$method, test = m$test
-      ),
-      error = function(e) {
-        message("Null model fit failed (", conditionMessage(e), "); retrying with raised iterations.")
-        rma.mv(
-          yi = m$yi, V = m$vi, random = model_null_random, struct = model_null_struct,
-          data = model_null_data, method = m$method, test = m$test,
-          control = list(iter.max = 10000, eval.max = 10000, rel.tol = 1e-8)
-        )
-      }
+    # Use the same sampling covariance the model itself used (full V for an
+    # rma.mv, including vcalc), not just its diagonal; fall back to vi for a
+    # plain rma. Sharing V keeps R2 like-for-like and lets a CAR/complex
+    # structure converge as it did in the main fit.
+    null_V <- if (!is.null(m$V)) m$V else m$vi
+
+    # Only fitted if we have not already fitted this exact null model
+    null_parts <- .ma_null_key_parts(
+      m, model_null_data, model_null_random, model_null_struct, null_V
     )
+    null_args <- list(
+      yi = m$yi, V = null_V, random = model_null_random,
+      data = model_null_data, method = m$method, test = m$test, control = m$control
+    )
+    if(!is.null(model_null_struct)) null_args$struct <- model_null_struct
+
+    # If nlminb stalls, retry once with raised iterations.
+    fit_null <- function() {
+      tryCatch(
+        do.call(rma.mv, null_args),
+        error = function(e) {
+          message("Null model fit failed (", conditionMessage(e), "); retrying with raised iterations.")
+          fallback_args <- null_args
+          base_control  <- if (is.list(null_args$control)) null_args$control else list()
+          fallback_args$control <- modifyList(base_control, list(
+            iter.max = 10000, eval.max = 10000, rel.tol = 1e-8
+          ))
+          do.call(rma.mv, fallback_args)
+        }
+      )
+    }
+    model_null <- ma_null_summary(null_parts, fit_null)
 
     # Calculate R2 for the different models
     model_levels$R2 <- NA
@@ -422,16 +528,16 @@ ma_report_analysis <- function(m) {
 
     # Calculate the general R2
     R2 <- positive_or_zero(
-      (1 - (sum(model_levels$tau2, na.rm = T)/sum(model_null$sigma2)))
+      (1 - (sum(model_levels$tau2, na.rm = T)/sum(model_null$sigma2, model_null$tau2, model_null$gamma2, na.rm = T)))
     )
 
     # Calculate overall how much the tau2 reduces from adding moderators
-    tau2_reduction_from_moderators <- sum(model_null$sigma2) - sum(model_levels$tau2, na.rm = T)
+    tau2_reduction_from_moderators <- sum(model_null$sigma2, model_null$tau2, model_null$gamma2, na.rm = T) - sum(model_levels$tau2, na.rm = T)
 
     # Calculate the I2 from the model without moderators
-    model_null_nu <- get_nu_rma.mv(model_null)$nu
-    model_null_sum_variance <- sum(model_null$sigma2, na.rm = T) + model_null_nu
-    model_null_I2 <- sum(model_null$sigma2) / model_null_sum_variance
+    model_null_nu <- model_null$nu
+    model_null_sum_variance <- sum(model_null$sigma2, model_null$tau2, model_null$gamma2, na.rm = T) + model_null_nu
+    model_null_I2 <- sum(model_null$sigma2, model_null$tau2, model_null$gamma2, na.rm = T) / model_null_sum_variance
     I2_reduction_from_moderators <- model_null_I2 - sum(model_levels$I2, na.rm = T)
 
   } else {
@@ -540,17 +646,23 @@ my_funnel_rma.mv <- function(
   # Continue with other elements of the funnel plot
   my_funnel_plot <- my_funnel_plot +
     # Create the line for the predicted effect size
-    geom_segment(aes(
-      x = pooled_effect, xend = pooled_effect, y = Inf, yend = 0
-    ), linetype = 3) +
+    annotate(
+      "segment",
+      x = pooled_effect, xend = pooled_effect, y = Inf, yend = 0,
+      linetype = 3
+    ) +
 
     # Create the funnel
-    geom_segment(aes(
-      x = expected_ci[1], xend = pooled_effect, y = Inf, yend = 0
-    ), linetype=3) +
-    geom_segment(aes(
-      x = pooled_effect, xend = expected_ci[2], y = 0, yend = Inf
-    ), linetype=3)
+    annotate(
+      "segment",
+      x = expected_ci[1], xend = pooled_effect, y = Inf, yend = 0,
+      linetype = 3
+    ) +
+    annotate(
+      "segment",
+      x = pooled_effect, xend = expected_ci[2], y = 0, yend = Inf,
+      linetype = 3
+    )
 
   # Dependent on whether a point fill was given, add the effect sizes
   if (point_fill != "") {
@@ -573,8 +685,13 @@ my_funnel_rma.mv <- function(
   }
 
   # Make a white background that is easier to visualise
+  funnel_theme <- if (exists("our_theme", mode = "function")) {
+    our_theme()
+  } else {
+    theme_hli_wbg()
+  }
   my_funnel_plot <- my_funnel_plot +
-    our_theme() + xlab(xlab)
+    funnel_theme + xlab(xlab)
 
   # return the funnel
   return(my_funnel_plot)
@@ -588,4 +705,31 @@ power_se_threshold <- function(alpha = 0.05, power = 0.80) {
   sum_z   <- z_alpha + z_beta
 
   return(sum_z)
+}
+
+# Newmods for plotting one moderator while every other moderator starts at its
+# fitted-sample mean, which holds the controls at their average and the dummies at
+# their observed rate. `values` are already on the model's own scale, so they must be
+# centred if the model's predictor is centred.
+make_mean_newmods <- function(model, moderator_col, values, knots = NULL,
+                              interact_with = NULL, zero_cols = NULL) {
+  cols <- setdiff(colnames(model$X), "intrcpt")
+  newmods <- matrix(
+    rep(colMeans(model$X[, cols, drop = F]), each = length(values)),
+    nrow = length(values), dimnames = list(NULL, cols)
+  )
+  for (col in intersect(zero_cols, cols)) newmods[, col] <- 0
+  if (is.null(knots)) {
+    newmods[, moderator_col] <- values
+  } else {
+    newmods[, grep("^rcs\\(", cols)] <- Hmisc::rcspline.eval(values, knots, inclx = T)
+  }
+  # Keep any product term consistent with the moderator we vary, rather than frozen
+  # at its own column mean, which would draw a curve the model never implies.
+  for (col in interact_with) {
+    term <- grep(":", cols, value = T)
+    term <- term[grepl(moderator_col, term, fixed = T) & grepl(col, term, fixed = T)]
+    if (length(term)) newmods[, term] <- mean(model$X[, col]) * values
+  }
+  newmods
 }

@@ -12,6 +12,13 @@ round_per <- function(x, digits = 2) {
   return(percent_string)
 }
 
+# Get per
+get_per_rounded <- function(n, N, digits = 2) {
+  per <- (n / N)
+  per_rounded <- round_per(per, digits = digits)
+  return(per_rounded)
+}
+
 # Function to easily write a confidence interval string
 present_with_CI <- function(estimate, lower, upper, per = "95%", show_per = T) {
   ci_str <- if (show_per) {
@@ -100,6 +107,19 @@ format_p_value <- function(p_value, include_p = T) {
   } else {
     formatted_p <- formatC(p_value, format = "f", digits = 3)
     return(paste0(p_equals, sub("^0\\.", ".", formatted_p)))
+  }
+}
+
+# Get sig star
+get_sig_star <- function(p_value) {
+  if (p_value < 0.001) {
+    return("***")
+  } else if (p_value < 0.01) {
+    return("**")
+  } else if (p_value < 0.05) {
+    return("*")
+  } else {
+    return("")
   }
 }
 
@@ -241,6 +261,25 @@ get_total_effect <- function(
       total_effect_graph    = total_effect_graph
     )
   )
+}
+
+save_docx_if_changed <- function(path, ..., pr_section = NULL) {
+  # Drop any tables that were not built for this analysis
+  tables <- Filter(Negate(is.null), list(...))
+  new_hash <- digest::digest(tables, algo = "md5")
+  hash_path <- paste0(path, ".hash")
+  old_hash  <- if (file.exists(hash_path)) readLines(hash_path, warn = FALSE) else ""
+  if (new_hash == old_hash) {
+    message("No changes detected, skipping: ", path)
+    return(invisible(NULL))
+  }
+  if (is.null(pr_section)) {
+    do.call(save_as_docx, c(tables, list(path = path)))
+  } else {
+    do.call(save_as_docx, c(tables, list(path = path, pr_section = pr_section)))
+  }
+  writeLines(new_hash, hash_path)
+  message("Written: ", path)
 }
 
 # Define function to escape LaTeX special characters
